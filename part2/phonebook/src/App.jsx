@@ -1,15 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Person from './components/Person'
+import axios from 'axios'
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas' }
-  ]) 
+  const [persons, setPersons] = useState([]) 
   const [newName, setNewName] = useState('')
-  const [newPhone, setNewPhone] = useState('')
+  const [number, setNumber] = useState('')
   const [filter, setFilter] = useState('')
+
+  useEffect(()=> {
+    axios
+      .get("http://localhost:3001/persons")
+      .then(res => {
+        setPersons(res.data)
+      })
+  }, [])
 
   const handleSubmit =(e)=> {
     e.preventDefault();
@@ -23,9 +30,9 @@ const App = () => {
       }
 
       // Add new name to phonebook and reset input
-      setPersons([...persons, {name: newName, phone: newPhone}]);
+      setPersons([...persons, {name: newName, number}]);
       setNewName("");
-      setNewPhone("")
+      setNumber("")
     }
   }
 
@@ -38,14 +45,14 @@ const App = () => {
       <h2>Add a new</h2>
       <PersonForm
         newName={newName}
-        newPhone={newPhone}
+        newPhone={number}
         onNameChange={(e)=>setNewName(e.target.value)}
-        onPhoneChange={(e)=>setNewPhone(e.target.value)}
+        onPhoneChange={(e)=>setNumber(e.target.value)}
         onSubmit={handleSubmit}
       />
       <h2>Numbers</h2>
       <ul>
-        {personsFiltered.map(person => <Person key={person.name} name={person.name} phone={person.phone} />)}
+        {personsFiltered.map(person => <Person key={person.name} name={person.name} phone={person.number} />)}
       </ul>
     </div>
   )
