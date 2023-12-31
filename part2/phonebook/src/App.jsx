@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Person from './components/Person'
+import Notification from './components/Notification'
 import personService from './services/persons'
 
 const App = () => {
@@ -9,6 +10,7 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [number, setNumber] = useState('')
   const [filter, setFilter] = useState('')
+  const [notification, setNotification] = useState(null)
 
   useEffect(()=> {
     personService
@@ -17,6 +19,13 @@ const App = () => {
         setPersons(personsList)
       })
   }, [])
+
+  const showNotification=(notification)=> {
+    setNotification(notification)
+    setTimeout(() => {
+      setNotification(null)
+    }, 5000)
+  }
 
   const handleSubmit =(e)=> {
     e.preventDefault();
@@ -40,6 +49,7 @@ const App = () => {
       personService
         .create({name: newName, number})
         .then(personCreated => {
+          showNotification(`Added ${newName}`)
           setPersons([...persons, personCreated]);
           setNewName("");
           setNumber("")
@@ -54,7 +64,10 @@ const App = () => {
 
     personService
       .delete(id)
-      .then(() => setPersons(persons.filter(x => x.id !== id)))
+      .then(() => {
+        showNotification(`Deleted ${person.name}`)
+        setPersons(persons.filter(x => x.id !== id))
+      })
   }
 
   const personsFiltered = persons.filter(person => person.name.toLowerCase().includes(filter.toLowerCase()))
@@ -62,6 +75,7 @@ const App = () => {
   return (
     <div>
       <h1>Phonebook</h1>
+      <Notification type="notification" message={notification} />
       <Filter value={filter} onFilterChange={(e)=> setFilter(e.target.value)} />
       <h2>Add a new</h2>
       <PersonForm
