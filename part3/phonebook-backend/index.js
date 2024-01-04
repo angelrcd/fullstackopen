@@ -1,5 +1,7 @@
 import express from 'express'
 import morgan from 'morgan';
+import cors from 'cors'
+import Phonebook from './models/phonebook.js';
 
 let persons = [
   { 
@@ -24,8 +26,6 @@ let persons = [
   }
 ]
 
-const PORT = 3001;
-
 morgan.token('reqbody', (req, res) => {
   if(req.method === 'POST'){
     return JSON.stringify(req.body)
@@ -33,6 +33,8 @@ morgan.token('reqbody', (req, res) => {
 })
 
 const app = express();
+app.use(cors())
+app.use(express.static('dist'))
 app.use(express.json())
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :reqbody'))
 
@@ -47,18 +49,22 @@ app.get('/info', (req, res) => {
 
 // GET all persons
 app.get('/api/persons', (req, res) => {
-  res.json(persons)
+  Phonebook.find({}).then(persons => {
+    res.json(persons)
+  })
 })
 
 // GET single person
 app.get('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const person = persons.find(x => x.id === id);
+  const id = req.params.id;
 
-  if(!person)
-    return res.status(404).end()
+  Phonebook.findById(id)
+    .then(person => res.json(person))
 
-  res.json(person)
+  // if(!person)
+  //   return res.status(404).end()
+
+  // res.json(person)
 })
 
 // POST new person
@@ -66,21 +72,21 @@ app.post('/api/persons', (req, res) => {
   const newPerson = req.body;
   newPerson.id = Math.floor(Math.random() * Number.MAX_VALUE);
 
-  const isNameRepeated = persons.find(x => x.name === newPerson?.name)
+  // const isNameRepeated = persons.find(x => x.name === newPerson?.name)
 
-  // if(!newPerson.name || !newPerson.number || isNameRepeated)
-  //   return res.status(400).end();
   if(!newPerson.name)
     return res.status(400).json({error: "no name"})
   
   if(!newPerson.number)
     return res.status(400).json({error: "no number"})
 
-  if(isNameRepeated)
-  return res.status(400).json({error: "name must be unique"})
+  // if(isNameRepeated)
+  // return res.status(400).json({error: "name must be unique"})
 
-  persons.push(newPerson);
-  res.status(201).json(newPerson)
+  // persons.push(newPerson);
+  new Phonebook(newPerson).save()
+    .then(saved => res.status(201).json(saved))
+  // res.status(201).json(newPerson)
 })
 
 // DELETE single entry
@@ -97,6 +103,6 @@ const unknownEndpoint = (request, response) => {
 
 app.use(unknownEndpoint)
 
-app.listen(PORT, ()=> {
-  console.log("Listening on port 3001");
+app.listen(process.env.PORT, ()=> {
+  console.log("Listening on port", process.env.PORT);
 })
