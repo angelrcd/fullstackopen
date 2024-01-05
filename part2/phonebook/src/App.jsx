@@ -36,7 +36,7 @@ const App = () => {
       if (found){
         // If name exists, ask to update number
         const updateNumber = confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)
-        if (!updateNumber) {
+        if (updateNumber) {
           personService
             .updateNumber(found, number)
             .then((personUpdated) => {
@@ -46,6 +46,8 @@ const App = () => {
               setNumber("")
             })
             return;
+        } else {
+          return;
         }
       }
 
@@ -58,6 +60,7 @@ const App = () => {
           setNewName("");
           setNumber("")
         })
+        .catch(err => showNotification(err.response.data.error))
     }
   }
 
