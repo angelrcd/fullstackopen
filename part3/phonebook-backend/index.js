@@ -3,29 +3,6 @@ import morgan from 'morgan';
 import cors from 'cors'
 import Phonebook from './models/phonebook.js';
 
-let persons = [
-  { 
-    "id": 1,
-    "name": "Arto Hellas", 
-    "number": "040-123456"
-  },
-  { 
-    "id": 2,
-    "name": "Ada Lovelace", 
-    "number": "39-44-5323523"
-  },
-  { 
-    "id": 3,
-    "name": "Dan Abramov", 
-    "number": "12-43-234345"
-  },
-  { 
-    "id": 4,
-    "name": "Mary Poppendieck", 
-    "number": "39-23-6423122"
-  }
-]
-
 morgan.token('reqbody', (req, res) => {
   if(req.method === 'POST'){
     return JSON.stringify(req.body)
@@ -39,12 +16,16 @@ app.use(express.json())
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :reqbody'))
 
 // INFO
-app.get('/info', (req, res) => {
-  const html = `
-    <p>Phonebook has info for ${persons.length} people</p>
-    <p>${new Date()}</p>
-  `
-  res.send(html)
+app.get('/info', (req, res, next) => { 
+  Phonebook.countDocuments({})
+    .then(count => {
+      const html = `
+        <p>Phonebook has info for ${count} people</p>
+        <p>${new Date()}</p>
+      `
+      res.send(html)
+    })
+    .catch(err => next(err))
 })
 
 // GET all persons
@@ -55,16 +36,17 @@ app.get('/api/persons', (req, res) => {
 })
 
 // GET single person
-app.get('/api/persons/:id', (req, res) => {
+app.get('/api/persons/:id', (req, res, next) => {
   const id = req.params.id;
 
   Phonebook.findById(id)
-    .then(person => res.json(person))
+    .then(person => {
+      if (!person)
+        return res.status(404).end()
 
-  // if(!person)
-  //   return res.status(404).end()
-
-  // res.json(person)
+        res.json(person)
+    })
+    .catch(err => next(err))
 })
 
 // POST new person
@@ -89,10 +71,23 @@ app.post('/api/persons', (req, res) => {
   // res.status(201).json(newPerson)
 })
 
+// PUT update number
+app.put('/api/persons/:id', (req, res, next) => {
+  const newInfo = req.body;
+  const id = req.params.id;
+
+  Phonebook.findByIdAndUpdate(id, newInfo, {new: true})
+    .then(updatedPerson => res.json(updatedPerson))
+    .catch(err => next(err))
+})
+
 // DELETE single entry
-app.delete('/api/persons/:id', (req, res) => {
-  const id = Number(req.params.id);
-  persons = persons.filter(person => person.id !== id);
+app.delete('/api/persons/:id', (req, res, next) => {
+  const id = req.params.id;
+  // persons = persons.filter(person => person.id !== id);
+  Phonebook.findByIdAndDelete(id)
+    .then(result => res.status(204).end())
+    .catch(err => next(err))
 
   res.status(204).end()
 })
@@ -101,7 +96,19 @@ const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } 
+
+  next(error)
+}
+
 app.use(unknownEndpoint)
+// this has to be the last loaded middleware.
+app.use(errorHandler)
 
 app.listen(process.env.PORT, ()=> {
   console.log("Listening on port", process.env.PORT);

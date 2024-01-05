@@ -36,13 +36,17 @@ const App = () => {
       if (found){
         // If name exists, ask to update number
         const updateNumber = confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)
-        if (!updateNumber) return;
-        // Update number
-        personService
-          .updateNumber(found, number)
-          .then((personUpdated) => setPersons(persons.map(x => x.id !== personUpdated.id ? x : personUpdated )))
-          return;
-        
+        if (!updateNumber) {
+          personService
+            .updateNumber(found, number)
+            .then((personUpdated) => {
+              showNotification(`Updated ${personUpdated.name}'s number!`)
+              setPersons(persons.map(x => x.id !== personUpdated.id ? x : personUpdated ));
+              setNewName("");
+              setNumber("")
+            })
+            return;
+        }
       }
 
       // Add new name to phonebook and reset input
